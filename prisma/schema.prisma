@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// 在数据库中创建以下数据表，之后执行npx prisma db push推送到数据库
+model User {
+  id                     String  @id @unique @db.VarChar(255)
+  avatar                 String  @db.VarChar(255)
+  name                   String  @db.VarChar(255)
+  password               String? @db.VarChar(255)
+  phone                  String? @db.VarChar(255)
+  gender                 Gender? @default(MALE)
+  comment_list           String? @db.LongText // 评论列表
+  collected_article_list String? @db.LongText // 收藏
+  published_article_list String? @db.LongText // 发布
+  loved_article_list     String? @db.LongText // 点赞文章
+  follower_list          String? @db.LongText // 关注
+  following_list         String? @db.LongText // 粉丝
+  read_history_list      String? @db.LongText // 最近阅读历史
+
+  // 以下字段用于表之间的关系映射，不会被添加到数据库中
+  Article Article[]
+  Comment Comment[]
+}
+
+model Article {
+  id           String    @id @unique @db.VarChar(255)
+  content      String    @db.LongText
+  create_time  DateTime  @default(now())
+  selected     Boolean   @default(false) // 是否为精选文章
+  vote_number  Int?      @default(0) @db.Int // 点赞数量
+  share_number Int?      @default(0) @db.Int // 分享数量
+  comments     String?   @db.LongText // 评论id列表
+  author_id    String    @db.VarChar(255) // 作者id
+  Author       User      @relation(fields: [author_id], references: [id])
+  Comment      Comment[]
+}
+
+model Comment {
+  id          String   @id @unique @db.VarChar(255)
+  content     String   @db.LongText
+  create_time DateTime @default(now())
+  vote_number Int?     @default(0) @db.Int
+  author_id   String   @db.VarChar(255)
+  article_id  String   @db.VarChar(255)
+  Author      User     @relation(fields: [author_id], references: [id])
+  article     Article  @relation(fields: [article_id], references: [id])
+}
+
+model TokenBlacklist {
+  id          String   @id @default(uuid())
+  token       String   @unique
+  create_time DateTime @default(now())
+}
+
+// 用于例如当关注一个用户时，不能直接对被关注用户的粉丝列表进行修改，只能将修改信息暂存此处，等到被关注用户下次登录时自动访问该数据表然后进行对应的更新
+// key(字段)值只能为following_list，故不声明，如果存在可以为多个值的key，应当设置安全key列表
+model TempUpdateInfo {
+  id        String   @id @unique @default(uuid())
+  user_id    String   @db.VarChar(255) // 例如被关注者的id
+  value     String   @db.VarChar(255) // 例如被关注者following_list中要添加或删除的值
+  creator_id String   @db.VarChar(255) // 例如关注者的id，谁发起了这次请求
+  create_time  DateTime @default(now())
+  is_delete  Boolean  @default(false) // 是否是删除操作
+}
+
+// 枚举性别类
+enum Gender {
+  MALE
+  FEMALE
+}
