@@ -69,6 +69,11 @@ model TempUpdateInfo {
   is_delete  Boolean  @default(false) // 是否是删除操作
 }
 
+model ArticleImage {
+  id  String @id @unique @default(uuid())
+  url String @db.LongText
+}
+
 // 枚举性别类
 enum Gender {
   MALE
