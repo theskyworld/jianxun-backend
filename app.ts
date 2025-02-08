@@ -29,6 +29,6 @@ app.get("/api/articleImage", getArticleImages);
 // 临时更新信息
 app.post("/api/temp/create", createTempUpdateInfo);
 
-app.listen(8080, () => {
-  log("服务启动,8080端口");
+app.listen(9090, () => {
+  log("服务启动,9090端口");
 });
