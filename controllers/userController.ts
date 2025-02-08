@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import axios from "axios";
 import bcrypt from "bcryptjs";
 import type { NextFunction, Request, Response } from "express";
 import asyncHandler from "express-async-handler";
@@ -273,6 +274,53 @@ export const login = asyncHandler(
       }
     } catch (err) {
       errorHandler(err, res, "用户登录失败");
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+);
+
+/**
+ * @description 使用微信登录
+ * @route POST /api/user/login/wechat
+ * @body {
+ *  code 微信登录code 必填
+ * }
+ * @access Public
+ */
+export const loginWechat = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { code } = req.body;
+      if (!code) return sendResponse(res, 400, "code为必填项");
+      const { data } = await axios.get(
+        "https://api.weixin.qq.com/sns/jscode2session",
+        {
+          params: {
+            appid: process.env.WECHAT_APP_ID,
+            secret: process.env.WECHAT_APP_SECRET,
+            js_code: code,
+            grant_type: "authorization_code",
+          },
+        }
+      );
+      // console.log(data);
+      // 远程登录微信服务器失败
+      if (data.errcode) return sendResponse(res, 500, data.errmsg);
+      // 基于data中的openid生成token
+      // TODO 后续前端在用户使用微信登录并获取用户信息之后添加绑定手机号的操作，然后将当前用户以手机号的形式添加到数据库中
+      const token = jwt.sign(
+        {
+          openid: data.openid,
+        },
+        SECRET_KEY,
+        {
+          expiresIn: TOKEN_EXPIRES,
+        }
+      );
+      sendResponse(res, 200, {msg:"用户登录成功",token,userSecret:data}, isReturnJson(req));
+    } catch (err) {
+      errorHandler(err, res, "微信登录失败");
     } finally {
       await prisma.$disconnect();
     }

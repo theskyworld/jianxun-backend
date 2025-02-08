@@ -3,6 +3,7 @@ import {
   findUser,
   getUser,
   login,
+  loginWechat,
   logout,
   register,
   updateUser,
@@ -11,6 +12,7 @@ const router = express.Router();
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/login/wechat",loginWechat);
 router.post("/logout", logout);
 router.get("/get", getUser);
 router.post("/update", updateUser);
