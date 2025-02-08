@@ -307,18 +307,13 @@ export const loginWechat = asyncHandler(
       // console.log(data);
       // 远程登录微信服务器失败
       if (data.errcode) return sendResponse(res, 500, data.errmsg);
-      // 基于data中的openid生成token
-      // TODO 后续前端在用户使用微信登录并获取用户信息之后添加绑定手机号的操作，然后将当前用户以手机号的形式添加到数据库中
-      const token = jwt.sign(
-        {
-          openid: data.openid,
-        },
-        SECRET_KEY,
-        {
-          expiresIn: TOKEN_EXPIRES,
-        }
+      // 用户登录后的token通过login接口获取
+      sendResponse(
+        res,
+        200,
+        { msg: "用户登录成功", userSecret: data },
+        isReturnJson(req)
       );
-      sendResponse(res, 200, {msg:"用户登录成功",token,userSecret:data}, isReturnJson(req));
     } catch (err) {
       errorHandler(err, res, "微信登录失败");
     } finally {
@@ -567,37 +562,71 @@ export const updateUser = asyncHandler(
  * @description 判断是否存在用户
  * @route GET /api/user/find
  * @param {
+ *  name 用户名称
  *  phone 用户手机号 必填
  * }
  * @access Public
  */
 export const findUser = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { phone } = req.query;
-    if (!phone) return sendResponse(res, 401, "手机号为必填项");
-    prisma.user
-      .findFirst({
-        where: { phone: String(phone) },
-      })
-      .then(result => {
-        if (result)
-          sendResponse(
-            res,
-            200,
-            { msg: "用户存在", data: true },
-            isReturnJson(req)
-          );
-        else
-          sendResponse(
-            res,
-            200,
-            { msg: "用户不存在", data: false },
-            isReturnJson(req)
-          );
-      })
-      .catch(() => {
-        sendResponse(res, 500, "查询失败");
-      });
+    const { phone, name } = req.query;
+    if (!phone && !name)
+      return sendResponse(res, 401, "手机号或者用户名称为必填项");
+    try {
+      if (name) {
+        prisma.user
+          .findFirst({
+            where: { name: String(name) },
+          })
+          .then(result => {
+            if (result)
+              sendResponse(
+                res,
+                200,
+                { msg: "用户存在", data: true },
+                isReturnJson(req)
+              );
+            else
+              sendResponse(
+                res,
+                200,
+                { msg: "用户不存在", data: false },
+                isReturnJson(req)
+              );
+          })
+          .catch(() => {
+            sendResponse(res, 500, "查询失败");
+          });
+      } else if (phone) {
+        prisma.user
+          .findFirst({
+            where: { phone: String(phone) },
+          })
+          .then(result => {
+            if (result)
+              sendResponse(
+                res,
+                200,
+                { msg: "用户存在", data: true },
+                isReturnJson(req)
+              );
+            else
+              sendResponse(
+                res,
+                200,
+                { msg: "用户不存在", data: false },
+                isReturnJson(req)
+              );
+          })
+          .catch(() => {
+            sendResponse(res, 500, "查询失败");
+          });
+      }
+    } catch (err) {
+      errorHandler(err, res, "查询用户失败");
+    } finally {
+      await prisma.$disconnect();
+    }
   }
 );
 

@@ -2,7 +2,6 @@ import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import type { NextFunction, Request, Response } from "express";
 import expressAsyncHandler from "express-async-handler";
-import { env } from "process";
 import {
   authUser,
   getNewDataLikeArray,
@@ -394,7 +393,7 @@ export const getRandomArticleList = expressAsyncHandler(
       if (listResult.status !== 200)
         return sendResponse(res, 500, listResult.data.msg || "获取失败");
       const randomArticleList = listResult.data.data;
-      console.log(randomArticleList);
+      // console.log(randomArticleList);
       const responseData = [];
       for (let i = 0; i < randomArticleList.length; i++) {
         const articleResult = await axios.get(
@@ -418,12 +417,3 @@ export const getRandomArticleList = expressAsyncHandler(
     }
   }
 );
-
-function my_log(...args:any[]) {
-  if (env.NODE_ENV === "development") { 
-    console.log(...args);
-  }
-}
-
-
-my_log("测试",1,2,3);
