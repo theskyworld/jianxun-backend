@@ -11,8 +11,6 @@ import userRouter from "./routers/userRouter";
 const app = express();
 app.use(cors());
 const cache = require("apicache").middleware;
-app.use(cache("10 minutes"));
-
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
@@ -20,13 +18,13 @@ app.use(bodyParser.json());
 app.use("/api/user", userRouter);
 
 // 文章相关
-app.use("/api/article", articleRouter);
+app.use("/api/article",cache("10 minutes"), articleRouter);
 
 // 评论相关
 app.use("/api/comment", commentRouter);
 
 // 随机文章的贴图
-app.get("/api/articleImage", getArticleImages);
+app.get("/api/articleImage",cache("10 minutes"), getArticleImages);
 
 // 临时更新信息
 app.post("/api/temp/create", createTempUpdateInfo);
