@@ -10,6 +10,8 @@ import userRouter from "./routers/userRouter";
 
 const app = express();
 app.use(cors());
+const cache = require("apicache").middleware;
+app.use(cache("30 minutes"));
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
