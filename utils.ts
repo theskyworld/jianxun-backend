@@ -1,6 +1,8 @@
 import { $Enums, PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import path from "path";
 import errorHandler from "./utils/errorHandler";
 
 /**
@@ -222,3 +224,43 @@ export const handleTempUpdateInfo = async (
     await prisma.$disconnect();
   }
 };
+
+/* 以下用于文件上传 ----------开始 */
+
+// 配置文件存储
+export const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "/home/ubuntu/uploads/images"); // 确保这个目录存在
+  },
+  filename: function (req, file, cb) {
+    // 保持原始文件名，添加时间戳避免重复
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+// 配置文件过滤
+const fileFilter = (
+  req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
+  // 允许的文件类型
+  const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("不支持的文件类型！"));
+  }
+};
+
+export const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 限制10MB
+  },
+}).single("file"); // name字段必须是'file'以匹配uni.uploadFile
+
+/* 用于文件上传 ----------结束 */

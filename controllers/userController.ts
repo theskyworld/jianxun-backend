@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import type { NextFunction, Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import jwt from "jsonwebtoken";
+import multer from "multer";
 import {
   authUser,
   getNewDataLikeArray,
@@ -12,6 +13,7 @@ import {
   randomUUID,
   sendResponse,
   stringToArray,
+  upload,
 } from "../utils";
 import {
   TOKEN_EXPIRES,
@@ -631,3 +633,63 @@ export const findUser = asyncHandler(
 );
 
 // TODO 添加一个通过用户名判断是否已注册的接口，用于前端用户输入完成用户名时(onblur)判断当前用户名是否可用
+
+
+/**
+ * @description 上传用户头像
+ * @route POST /api/user/upload
+ * @access Private
+ */
+export const uploadFile = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // 验证token
+      const { token, verifiedInfo, user } = (await authUser(req, res)) || {};
+      if (!token || !verifiedInfo || !user)
+        return sendResponse(res, 401, "用户校验失败");
+
+      upload(req, res, async function (err) {
+        if (err instanceof multer.MulterError) {
+          // multer错误
+          return sendResponse(res, 400, {
+            errMsg: `上传失败: ${err.message}`,
+            statusCode: 400,
+          });
+        } else if (err) {
+          // 未知错误
+          return sendResponse(res, 500, {
+            errMsg: `上传失败: ${err.message}`,
+            statusCode: 500,
+          });
+        }
+
+        // 确保文件已上传
+        if (!req.file) {
+          return sendResponse(res, 400, {
+            errMsg: "未检测到上传文件",
+            statusCode: 400,
+          });
+        }
+
+        // 获取其他表单数据
+        const formData = req.body;
+
+        // 返回成功响应
+        sendResponse(res, 200, {
+          statusCode: 200,
+          data: {
+            filename: req.file.filename,
+            path: `/home/ubuntu/uploads/images/${req.file.filename}`, // 返回可访问的URL路径
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+            formData: formData, // 包含额外的表单数据
+          },
+        });
+      });
+    } catch (err) {
+      errorHandler(err, res, "文件上传失败");
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+);
